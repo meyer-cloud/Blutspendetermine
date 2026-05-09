@@ -1,0 +1,198 @@
+<div class="drk-widget-wide">
+    <h2 class="drk-headline">Blutspendetermine in Gersweiler</h2>
+
+    <div class="drk-viewport">
+        <button class="drk-nav drk-prev" onclick="drkMove(-1)" aria-label="Vorheriger">&#10094;</button>
+        
+        <div id="drk-slider-wide" class="drk-slider">
+            <p style="padding:20px; color:#666; width:100%; text-align:center;">Termine werden geladen...</p>
+        </div>
+
+        <button class="drk-nav drk-next" onclick="drkMove(1)" aria-label="Nächster">&#10095;</button>
+    </div>
+</div>
+
+<style>
+    /* 1. BREITER CONTAINER */
+    .drk-widget-wide {
+        width: 100%;
+        max-width: 1400px; /* Hier auf die volle Breite deiner Seite angepasst */
+        margin: 40px auto;
+        font-family: Arial, sans-serif;
+        box-sizing: border-box;
+    }
+
+    .drk-headline {
+        text-align: center;
+        font-size: 32px;
+        color: #333;
+        margin-bottom: 40px;
+        font-weight: bold;
+    }
+
+    /* 2. VIEWPORT */
+    .drk-viewport {
+        position: relative;
+        padding: 0 70px; /* Platz für die Pfeile */
+    }
+
+    .drk-slider {
+        display: flex;
+        gap: 30px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        /* Verhindert Abschneiden des Schattens */
+        padding: 20px 20px 40px 10px;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .drk-slider::-webkit-scrollbar { display: none; }
+
+    /* 3. KARTEN (BREITER FÜR DESKTOP) */
+    .drk-card {
+        flex: 0 0 520px; /* Breite der Karten erhöht */
+        background-color: #be3228;
+        color: #ffffff !important;
+        display: flex;
+        min-height: 220px;
+        text-decoration: none !important;
+        scroll-snap-align: start;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        transition: transform 0.2s ease;
+    }
+
+    .drk-card:hover {
+        transform: translateY(-5px);
+        background-color: #a02820;
+    }
+
+    /* Linke Seite */
+    .drk-side-date {
+        width: 180px;
+        padding: 30px;
+        border-right: 1px solid rgba(255,255,255,0.3);
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        box-sizing: border-box;
+    }
+
+    .drk-day { font-size: 72px; font-weight: bold; line-height: 1; margin: 0; }
+    .drk-full-date { font-size: 22px; font-weight: bold; margin: 12px 0 5px 0; }
+    .drk-label { font-size: 15px; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* Rechte Seite */
+    .drk-side-info {
+        flex: 1;
+        padding: 30px 30px 30px 40px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+
+    .drk-loc-main { font-size: 20px; font-weight: bold; margin-bottom: 8px; }
+    .drk-time { font-size: 21px; font-weight: bold; margin: 15px 0; }
+
+    .drk-btn {
+        background: #ffffff;
+        color: #333 !important;
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: bold;
+        text-transform: uppercase;
+        width: fit-content;
+        margin-bottom: 12px;
+    }
+
+    /* 4. NAVIGATION (PFEILE) */
+    .drk-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 50px;
+        height: 50px;
+        background: #ffffff;
+        color: #be3228;
+        border: 1px solid #eee;
+        border-radius: 50%;
+        cursor: pointer;
+        z-index: 10;
+        font-size: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .drk-prev { left: 10px; }
+    .drk-next { right: 10px; }
+
+    /* 5. MOBILE */
+    @media (max-width: 850px) {
+        .drk-viewport { padding: 0 15px; }
+        .drk-nav { display: none; }
+        .drk-card { flex: 0 0 85vw; flex-direction: column; }
+        .drk-side-date { width: 100%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.2); text-align: center; align-items: center; }
+        .drk-side-info { text-align: center; align-items: center; padding: 25px; }
+    }
+</style>
+
+<script>
+async function loadWideDrk() {
+    const rss = "https://www.blutspendedienst-west.de/blutspendetermine/termine.rss?term=66128";
+    const api = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rss);
+
+    try {
+        const response = await fetch(api);
+        const data = await response.json();
+        const target = document.getElementById("drk-slider-wide");
+        let html = "";
+
+        if (!data.items || data.items.length === 0) {
+            target.innerHTML = "<p>Aktuell keine Termine verfügbar.</p>";
+            return;
+        }
+
+        data.items.forEach(item => {
+            const dMatch = item.title.match(/am (\d{2}\.\d{2}\.\d{4})/);
+            const tMatch = item.title.match(/(\d{2}:\d{2}) Uhr bis (\d{2}:\d{2})/);
+            const dStr = dMatch ? dMatch[1] : "";
+            const tStr = tMatch ? `${tMatch[1]} - ${tMatch[2]} Uhr` : "";
+            
+            let wTag = "Do";
+            if(dStr) {
+                const p = dStr.split('.');
+                wTag = new Date(p[2], p[1]-1, p[0]).toLocaleDateString('de-DE', {weekday: 'short'}).replace('.','');
+            }
+
+            html += `
+                <a href="${item.link}" target="_blank" class="drk-card">
+                    <div class="drk-side-date">
+                        <span class="drk-day">${wTag}</span>
+                        <span class="drk-full-date">${dStr}</span>
+                        <span class="drk-label">Blutspende</span>
+                    </div>
+                    <div class="drk-side-info">
+                        <span class="drk-loc-main">Saarbrücken-Gersweiler</span>
+                        <span style="font-size:15px; opacity:0.9;">Kath. Volkshaus, Kirchenstr. 1</span>
+                        <span class="drk-time">${tStr}</span>
+                        <div class="drk-btn">Infos & Services »</div>
+                        <span style="font-size:14px; font-weight:bold;">Bitte Termin reservieren!</span>
+                    </div>
+                </a>`;
+        });
+        target.innerHTML = html;
+    } catch (e) {
+        document.getElementById("drk-slider-wide").innerHTML = "<p>Fehler beim Laden.</p>";
+    }
+}
+
+function drkMove(dir) {
+    document.getElementById("drk-slider-wide").scrollBy({ left: dir * 500, behavior: 'smooth' });
+}
+
+loadWideDrk();
+</script>
